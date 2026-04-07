@@ -1,3 +1,6 @@
+#ifndef __MY_MSG_H__
+#define __MY_MSG_H__
+
 #include <iostream>
 #include <string>
 #include <thread>
@@ -29,3 +32,4 @@ namespace popolog{
                 _payload(msg){}
     };
 }
+#endif
