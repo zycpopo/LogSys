@@ -13,11 +13,11 @@ OBJ = $(SRC:.cc=.o)
 
 # 编译所有 .cc 文件为 .o 文件
 %.o: %.cc
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ 
 
 # 生成最终程序 + 自动删除 .o 文件
 $(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $(TARGET)
+	$(CC) $(OBJ) -o $(TARGET) -pthread
 	rm -f $(OBJ)
 
 # 清理编译产物
