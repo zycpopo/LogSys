@@ -11,9 +11,15 @@
 #include <ctime>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <cassert>
 
-namespace popolog{
-    namespace util{
+namespace popolog
+{
+    namespace util
+    {
         class Date{
             public:
                 static size_t getTime(){
@@ -31,33 +37,29 @@ namespace popolog{
                     }
                     return true;
                 }
-                static std::string path(const std::string &pathname)//3
+                static std::string path(const std::string &name)//3
                 {
-                    size_t pos = pathname.find_last_of("/\\");
-                    if(pos == std::string::npos)
-                    {
-                        return ".";
-                    }
-                    return pathname.substr(0,pos+1);
+                    if (name.empty()) return ".";
+                    size_t pos = name.find_last_of("/\\");
+                    if (pos == std::string::npos) return ".";
+                    return name.substr(0, pos + 1);
                 }
-                static void createDirectory(const std::string &pathname)//4
+                static void createDirectory(const std::string &path)//4
                 {
-                    size_t pos = 0, idx = 0;
-                    while(idx < pathname.size())
-                    {
-                        pos = pathname.find_first_of("/\\",idx);
-                        if(pos == std::string::npos)
-                        {
-                            mkdir(pathname.c_str(),0777);
+                    if (path.empty()) return ;
+                    if (exists(path)) return ;
+                    size_t pos, idx = 0;
+                    while(idx < path.size()) {
+                        pos = path.find_first_of("/\\", idx);
+                        if (pos == std::string::npos) {
+                            mkdir(path.c_str(), 0755);
+                            return;
                         }
-                        std::string parent_dir = pathname.substr(0,pos - idx + 1);
-
-                        if(exists(parent_dir) == true)
-                        {
-                            idx = pos+1;
-                            continue;
-                        }
-                        mkdir(parent_dir.c_str(),0777);
+                        if (pos == idx) {idx = pos + 1; continue;}
+                        std::string subdir = path.substr(0, pos);
+                        if (subdir == "." || subdir == "..") {idx = pos + 1; continue;}
+                        if (exists(subdir)) {idx = pos + 1; continue;}
+                        mkdir(subdir.c_str(), 0755);
                         idx = pos + 1;
                     }
                 }
