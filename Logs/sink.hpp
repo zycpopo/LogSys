@@ -1,4 +1,6 @@
 /*日志落地模块的实现*/
+#ifndef __M_SINK_H__
+#define __M_SINK_H__
 #include "util.hpp"
 
 #include <memory>
@@ -53,7 +55,7 @@ namespace popolog
         public:
             //构造时传入文件名，并打开文件，将操作句柄管理起来
             RollyBySizeSink(const std::string &basename,size_t max_size):
-                _basename(basename),max_fsize(max_size),cur_fsize(0)
+                _basename(basename),max_fsize(max_size),cur_fsize(0),name_count(0)
             {
                 std::string pathname = createNewFile();
                 util::File::createDirectory(util::File::path(pathname));
@@ -69,9 +71,11 @@ namespace popolog
                     std::string pathname = createNewFile();
                     _ofs.open(pathname,std::ios::binary | std::ios::app);
                     assert(_ofs.is_open());
+                    cur_fsize = 0;
                 }
                 _ofs.write(data,len);
                 assert(_ofs.good());
+                cur_fsize += len;
             }
         private:
             std::string  createNewFile()
@@ -81,12 +85,14 @@ namespace popolog
                 localtime_r(&t, &lt);
                 std::stringstream filename;
                 filename << _basename;
-                filename << lt.tm_year;
-                filename << lt.tm_mon;
+                filename << lt.tm_year + 1900;
+                filename << lt.tm_mon + 1;
                 filename << lt.tm_mday;
                 filename << lt.tm_hour;
                 filename << lt.tm_min;
                 filename << lt.tm_sec;
+                filename << "+";
+                filename << name_count++;
                 filename << ".log";
 
                 return filename.str();
@@ -98,6 +104,18 @@ namespace popolog
             std::ofstream _ofs;
             size_t max_fsize;
             size_t cur_fsize;
+            size_t name_count;
     };
     
+    
+    class SinkFactory{
+        public:
+            template <typename SinkType,typename ...Args>
+            static LogSink::ptr create(Args &&...args){
+                return std::make_shared<SinkType>(std::forward<Args>(args)...);
+            }
+        
+    };
 }
+
+#endif
