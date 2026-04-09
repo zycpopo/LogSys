@@ -115,6 +115,7 @@ namespace popolog{
 */
     class Formatter{
         public:
+            using ptr = std::shared_ptr<Formatter>;
             Formatter(const std::string &pattern = "[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n"):
                 _pattern(pattern){
                     assert(parsePattern());
