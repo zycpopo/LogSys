@@ -14,6 +14,7 @@
 #include <atomic>
 #include <mutex>
 #include <cstdarg>
+#include <cassert>
 
 namespace popolog{
     class Logger{
@@ -135,10 +136,10 @@ namespace popolog{
             std::vector<LogSink::ptr> _sinks;
     };
 
-    class SynLogger :public Logger
+    class SyncLogger :public Logger
     {
         public:
-            SynLogger(const std::string &logger_name,
+            SyncLogger(const std::string &logger_name,
                 LogLevel::value level,
                 Formatter::ptr &formatter,
                 std::vector<LogSink::ptr> &sinks):
@@ -154,6 +155,65 @@ namespace popolog{
                 }
             }
     };  
+
+    enum class LoggerType
+    {
+        LOGGER_SYNC,
+        LOGGER_ASYNC
+    };
+    class LoggerBuilder{
+        public:
+            void buildLoggerType(LoggerType type)
+            {
+                _logger_type = type;
+            }
+            void buildLoggerName(const std::string &name)
+            {
+                _logger_name = name;
+            }
+            void buildLoggerLevel(LogLevel::value level)
+            {
+                _limit_level = level;
+            }
+            void buildFormatter(const std::string &pattern)
+            {
+                _formatter = std::make_shared<Formatter>(pattern);
+            }
+            template<typename SinkType,typename ...Args>
+            void buildSink(Args && ...args)
+            {
+                LogSink::ptr psink = SinkFactory::create<SinkType>(std::forward<Args>(args)...);
+                _sinks.push_back(psink);
+            }
+            virtual Logger::ptr build() = 0;
+
+        protected:
+            LoggerType _logger_type;
+            std::string _logger_name;
+            std::atomic<LogLevel::value> _limit_level;
+            Formatter::ptr _formatter;
+            std::vector<LogSink::ptr> _sinks;
+
+    };
+
+    //具体的建造者类--局部日志器的建造者
+    class LocalLoggerBuilder : public LoggerBuilder{
+        public:
+        Logger::ptr build() override{
+            assert(_logger_name.empty() == false);
+            if(_formatter.get() == nullptr)
+            {
+                _formatter = std::make_shared<Formatter>();
+            }
+            if(_sinks.empty())
+            {
+                buildSink<StdoutSink>();
+            }
+            if(_logger_type == LoggerType::LOGGER_ASYNC)
+            {}
+            return std::make_shared<SyncLogger>(_logger_name,_limit_level,_formatter,_sinks);
+        }
+    };
 }
 
 #endif
