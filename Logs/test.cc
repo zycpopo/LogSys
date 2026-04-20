@@ -9,47 +9,47 @@
 
 int main()
 {
-   // 创建测试文件
-    std::ofstream outFile("test_input.txt");
-    outFile << "This is a test file.\nIt has multiple lines.\nAnd some content to verify.";
-    outFile.close();
+    // // 创建测试文件
+    // std::ofstream outFile("test_input.txt");
+    // outFile << "This is a test file.\nIt has multiple lines.\nAnd some content to verify.";
+    // outFile.close();
     
-    // 读取文件并写入缓冲区
-    std::ifstream inFile("test_input.txt");
-    popolog::Buffer buffer;
+    // // 读取文件并写入缓冲区
+    // std::ifstream inFile("test_input.txt");
+    // popolog::Buffer buffer;
     
-    char chunk[10];  // 每次读取10个字节
-    while (inFile.read(chunk, sizeof(chunk)) || inFile.gcount() > 0) {
-        size_t bytesRead = inFile.gcount();
-        buffer.push(chunk, bytesRead);
-    }
-    inFile.close();
+    // char chunk[10];  // 每次读取10个字节
+    // while (inFile.read(chunk, sizeof(chunk)) || inFile.gcount() > 0) {
+    //     size_t bytesRead = inFile.gcount();
+    //     buffer.push(chunk, bytesRead);
+    // }
+    // inFile.close();
     
-    // 将缓冲区数据写入新文件
-    std::ofstream outFile2("test_output.txt");
-    outFile2.write(buffer.begin(), buffer.readAbleSize());
-    outFile2.close();
+    // // 将缓冲区数据写入新文件
+    // std::ofstream outFile2("test_output.txt");
+    // outFile2.write(buffer.begin(), buffer.readAbleSize());
+    // outFile2.close();
     
-    // 比较两个文件
-    std::ifstream file1("test_input.txt");
-    std::ifstream file2("test_output.txt");
+    // // 比较两个文件
+    // std::ifstream file1("test_input.txt");
+    // std::ifstream file2("test_output.txt");
     
-    bool isEqual = (file1.tellg() == file2.tellg());  // 比较大小
+    // bool isEqual = (file1.tellg() == file2.tellg());  // 比较大小
     
-    if (isEqual) {
-        std::string content1, content2;
-        file1.seekg(0); file2.seekg(0);
-        getline(file1, content1, '\0');  // 读取全部内容
-        getline(file2, content2, '\0');
-        isEqual = (content1 == content2);
-    }
+    // if (isEqual) {
+    //     std::string content1, content2;
+    //     file1.seekg(0); file2.seekg(0);
+    //     getline(file1, content1, '\0');  // 读取全部内容
+    //     getline(file2, content2, '\0');
+    //     isEqual = (content1 == content2);
+    // }
     
-    file1.close();
-    file2.close();
+    // file1.close();
+    // file2.close();
     
-    std::cout << "Files are " << (isEqual ? "identical" : "different") << std::endl;
+    // std::cout << "Files are " << (isEqual ? "identical" : "different") << std::endl;
     
-    return isEqual ? 0 : 1;
+    // return isEqual ? 0 : 1;
 
 
 
@@ -65,27 +65,27 @@ int main()
     // std::vector<popolog::LogSink::ptr> sinks = {stdout_lsp,file_lsp,roll_lsp};
     // popolog::Logger::ptr logger (new popolog::SyncLogger(logger_name,limit,fmt,sinks));
 
-    // std::unique_ptr<popolog::LoggerBuilder> builder(new popolog::LocalLoggerBuilder());
-    // builder->buildLoggerName("sync_logger"); 
-    // builder->buildLoggerLevel(popolog::LogLevel::value::WARN);
-    // builder->buildFormatter("[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n");
-    // builder->buildLoggerType(popolog::LoggerType::LOGGER_SYNC);
-    // builder->buildSink<popolog::FileSink>("./logfile/test.log");
-    // builder->buildSink<popolog::StdoutSink>();
-    // popolog::Logger::ptr logger = builder->build();
+    std::unique_ptr<popolog::LoggerBuilder> builder(new popolog::LocalLoggerBuilder());
+    builder->buildLoggerName("async_logger"); 
+    builder->buildLoggerLevel(popolog::LogLevel::value::WARN);
+    builder->buildFormatter("[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n");
+    builder->buildLoggerType(popolog::LoggerType::LOGGER_ASYNC);
+    builder->buildSink<popolog::FileSink>("./logfile/async.log");
+    builder->buildSink<popolog::StdoutSink>();
+    popolog::Logger::ptr logger = builder->build();
 
-    // logger->debug(__FILE__,__LINE__,"%s","popo的测试日志");
-    // logger->info(__FILE__,__LINE__,"%s","popo的测试日志");
-    // logger->warn(__FILE__,__LINE__,"%s","popo的测试日志");
-    // logger->error(__FILE__,__LINE__,"%s","popo的测试日志");
-    // logger->fatal(__FILE__,__LINE__,"%s","popo的测试日志");
+    logger->debug(__FILE__,__LINE__,"%s","popo的测试日志");
+    logger->info(__FILE__,__LINE__,"%s","popo的测试日志");
+    logger->warn(__FILE__,__LINE__,"%s","popo的测试日志");
+    logger->error(__FILE__,__LINE__,"%s","popo的测试日志");
+    logger->fatal(__FILE__,__LINE__,"%s","popo的测试日志");
     
-    // int cursize = 0,count=0;
-    // while(cursize < 1024*1024*10)
-    // {
-    //     logger->fatal(__FILE__,__LINE__,"测试日志-%d",count++);
-    //     cursize +=30;
-    // }
+    int cursize = 0,count=0;
+    while(count < 500000)
+    {
+        logger->fatal(__FILE__,__LINE__,"测试日志-%d",count++);
+        cursize +=30;
+    }
 
 
     // popolog::LogMsg msg(popolog::LogLevel::value::INFO,53,"main.c","root","格式化功能测试"); 
