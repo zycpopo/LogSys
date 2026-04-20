@@ -41,33 +41,48 @@ namespace popolog{
         private:
             void threadEntry()
             {
-                while(!stop)
+                
+                while(!_stop)  // 直接使用 _stop，因为 std::atomic<bool> 支持隐式转换
                 {
-                    //当缓冲区交换完毕后就解锁
                     {
                         std::unique_lock<std::mutex> lock(_mutex);
-                        //判断生产缓冲区有没有数据，有则交换，无则阻塞
-                        _cond_con.wait(lock,[&](){return !_pro_buf.empty() || _stop;});//若当前是退出前被唤醒，或者有数据被唤醒，则返回真，继续向下运行，否则重新陷入睡眠
+                        _cond_con.wait(lock,[&](){return !_pro_buf.empty() || _stop;}); // 直接用 _stop
+                        if(_stop && _pro_buf.empty()) {  // 直接用 _stop
+                            break;
+                        }
                         _con_buf.swap(_pro_buf);
-                        //唤醒生产者
                         if (_looper_type == AsyncType::ASYNC_SAFE)
-                            _cond_pro.notify_all();
+                        _cond_pro.notify_all();
                     }
 
-                    _callback(_con_buf);//唤醒后对消费缓冲区进行数据处理
-                    _con_buf.reset();//初始化消费缓冲区
+                    if(!_con_buf.empty()) {
+                    _callback(_con_buf);
+                    _con_buf.reset();
+                    }
+                }
+                {
+                    std::lock_guard<std::mutex> lock(_mutex);
+                    if(!_pro_buf.empty()) {
+                        _con_buf.swap(_pro_buf);
+                    }
+                }
+    
+                if(!_con_buf.empty()) {
+                    _callback(_con_buf);
+                    _con_buf.reset();
                 }
             }
-            Functor _callback;
+            
         private:
-            AsyncType _looper_type;
             std::atomic<bool> _stop;
+            AsyncType _looper_type;
             Buffer _pro_buf;
             Buffer _con_buf;
             std::mutex _mutex;
             std::condition_variable _cond_pro;
             std::condition_variable _cond_con;
             std::thread _thread;//异步工作器的工作线程
+            Functor _callback;
     };
 }
 
