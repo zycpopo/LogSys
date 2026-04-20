@@ -10,6 +10,7 @@
 #include "level.hpp"
 #include "format.hpp"
 #include "sink.hpp"
+#include "looper.hpp"
 
 #include <atomic>
 #include <mutex>
@@ -156,6 +157,32 @@ namespace popolog{
             }
     };  
 
+    class AsyncLogger : public  Logger{
+        public: 
+            AsyncLogger(const std::string &logger_name,
+                LogLevel::value level,
+                Formatter::ptr &formatter,
+                std::vector<LogSink::ptr> &sinks,
+                AsyncType looper_type):
+                Logger(logger_name,level,formatter,sinks),
+                _looper(std::make_shared<AsyncLooper>(std::bind(&AsyncLogger::realLog,this,std::placeholders::_1),looper_type)){}
+
+            void log(const char * data,size_t len)//将数据写入缓冲区
+            {
+                _looper->push(data,len);
+            }
+            void realLog(Buffer &buf)//将缓冲区中的数据落地
+            {
+                if(_sinks.empty()) return;
+                for(auto &sink : _sinks)
+                {
+                    sink->log(buf.begin(),buf.readAbleSize());
+                }
+            }
+        private:
+            AsyncLooper::ptr  _looper;
+    };
+
     enum class LoggerType
     {
         LOGGER_SYNC,
@@ -163,6 +190,14 @@ namespace popolog{
     };
     class LoggerBuilder{
         public:
+            LoggerBuilder():
+                _logger_type(LoggerType::LOGGER_SYNC),
+                _limit_level(LogLevel::value::DEBUG),
+                _looper_type(AsyncType::ASYNC_SAFE){}
+            void buildEnableUnSafeAsync()
+            {
+                _looper_type = AsyncType::ASYNC_UNSAFE;
+            }
             void buildLoggerType(LoggerType type)
             {
                 _logger_type = type;
@@ -193,7 +228,7 @@ namespace popolog{
             std::atomic<LogLevel::value> _limit_level;
             Formatter::ptr _formatter;
             std::vector<LogSink::ptr> _sinks;
-
+            AsyncType _looper_type;
     };
 
     //具体的建造者类--局部日志器的建造者
@@ -210,7 +245,9 @@ namespace popolog{
                 buildSink<StdoutSink>();
             }
             if(_logger_type == LoggerType::LOGGER_ASYNC)
-            {}
+            {
+                return std::make_shared<AsyncLogger>(_logger_name,_limit_level,_formatter,_sinks,_looper_type);
+            }
             return std::make_shared<SyncLogger>(_logger_name,_limit_level,_formatter,_sinks);
         }
     };
