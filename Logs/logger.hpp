@@ -16,6 +16,7 @@
 #include <mutex>
 #include <cstdarg>
 #include <cassert>
+#include <unordered_map>
 
 namespace popolog{
     class Logger{
@@ -30,6 +31,9 @@ namespace popolog{
                 _formatter(formatter),
                 _sinks(sinks.begin(),sinks.end()){}
 
+            const std::string & name(){
+                return _logger_name;
+            }
             //完成构造日志消息对象并进行格式化，得到格式化后的日志消息字符串，然后进行落地输出
             void debug(const std::string &file,size_t line,const std::string &fmt,...)
             {
@@ -249,6 +253,81 @@ namespace popolog{
                 return std::make_shared<AsyncLogger>(_logger_name,_limit_level,_formatter,_sinks,_looper_type);
             }
             return std::make_shared<SyncLogger>(_logger_name,_limit_level,_formatter,_sinks);
+        }
+    };
+
+    class LoggerManager{
+        public:
+            static LoggerManager& getInstance()
+            {
+                //C++11后，静态局部变量，在编译层面实现了线程安全
+                static LoggerManager eton;
+                return eton;
+            }
+            void addLogger(Logger::ptr &logger)
+            {
+                if(hasLogger(logger->name())) return ; 
+                std::unique_lock<std::mutex> lock(_mutex);
+                _loggers.insert(std::make_pair(logger->name(),logger));
+            }
+            bool hasLogger(const std::string &name)
+            {
+                std::unique_lock<std::mutex> lock(_mutex);
+                auto it = _loggers.find(name);
+                if(it == _loggers.end()){
+                    return false;
+                }
+                return true;
+            }
+            Logger::ptr getLogger(const std::string &name)
+            {
+                std::unique_lock<std::mutex> lock(_mutex);
+                auto it = _loggers.find(name);
+                if(it == _loggers.end()){
+                    return Logger::ptr();
+                }
+                return it->second;
+            }
+            Logger::ptr rootLogger()
+            {
+                return _root_logger;
+            }
+        private:
+            LoggerManager() {
+                std::unique_ptr<popolog::LoggerBuilder> builder(new popolog::LocalLoggerBuilder());
+                builder->buildLoggerName("root");
+                _root_logger = builder->build();
+                _loggers.insert(std::make_pair("root",_root_logger));
+            }
+        private:
+            std::mutex _mutex;
+            Logger::ptr _root_logger;//默认日志器
+            std::unordered_map<std::string,Logger::ptr> _loggers;//管理所有日志器的数组
+    };
+
+    //全局日志器的建造者---在局部的基础上增加一个功能，将日志器添加到单例对象中
+    class GlobalLoggerBuilder : public LoggerBuilder{
+        public:
+            Logger::ptr build() override{
+                assert(_logger_name.empty() == false);
+                if(_formatter.get() == nullptr)
+                {
+                    _formatter = std::make_shared<Formatter>();
+                }
+                if(_sinks.empty())
+                {
+                    buildSink<StdoutSink>();
+                }
+                Logger::ptr logger;
+                if(_logger_type == LoggerType::LOGGER_ASYNC)
+                {
+                    logger = std::make_shared<AsyncLogger>(_logger_name,_limit_level,_formatter,_sinks,_looper_type);
+                }
+                else{
+                    logger = std::make_shared<SyncLogger>(_logger_name,_limit_level,_formatter,_sinks);
+                }
+                LoggerManager::getInstance().addLogger(logger);
+                return logger;
         }
     };
 }
