@@ -5,6 +5,24 @@
 #include "sink.hpp"
 #include "logger.hpp"
 #include "buffer.hpp"
+#include "popolog.hpp"
+
+void test_log()
+{
+    
+    DEBUG("%s","popo的测试日志");
+    INFO("%s","popo的测试日志");
+    WARN("%s","popo的测试日志");
+    ERROR("%s","popo的测试日志");
+    FATAL("%s","popo的测试日志");
+    
+    int cursize = 0,count=0;
+    while(count < 50000)
+    {
+        FATAL("测试日志-%d",count++);
+        cursize +=30;
+    }
+}
 
 
 int main()
@@ -65,27 +83,29 @@ int main()
     // std::vector<popolog::LogSink::ptr> sinks = {stdout_lsp,file_lsp,roll_lsp};
     // popolog::Logger::ptr logger (new popolog::SyncLogger(logger_name,limit,fmt,sinks));
 
-    std::unique_ptr<popolog::LoggerBuilder> builder(new popolog::LocalLoggerBuilder());
+    std::unique_ptr<popolog::LoggerBuilder> builder(new popolog::GlobalLoggerBuilder());
     builder->buildLoggerName("async_logger"); 
     builder->buildLoggerLevel(popolog::LogLevel::value::WARN);
     builder->buildFormatter("[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n");
     builder->buildLoggerType(popolog::LoggerType::LOGGER_ASYNC);
     builder->buildSink<popolog::FileSink>("./logfile/async.log");
     builder->buildSink<popolog::StdoutSink>();
-    popolog::Logger::ptr logger = builder->build();
+    builder->build();
 
-    logger->debug(__FILE__,__LINE__,"%s","popo的测试日志");
-    logger->info(__FILE__,__LINE__,"%s","popo的测试日志");
-    logger->warn(__FILE__,__LINE__,"%s","popo的测试日志");
-    logger->error(__FILE__,__LINE__,"%s","popo的测试日志");
-    logger->fatal(__FILE__,__LINE__,"%s","popo的测试日志");
+    test_log();
+
+    // logger->debug(__FILE__,__LINE__,"%s","popo的测试日志");
+    // logger->info(__FILE__,__LINE__,"%s","popo的测试日志");
+    // logger->warn(__FILE__,__LINE__,"%s","popo的测试日志");
+    // logger->error(__FILE__,__LINE__,"%s","popo的测试日志");
+    // logger->fatal(__FILE__,__LINE__,"%s","popo的测试日志");
     
-    int cursize = 0,count=0;
-    while(count < 500000)
-    {
-        logger->fatal(__FILE__,__LINE__,"测试日志-%d",count++);
-        cursize +=30;
-    }
+    // int cursize = 0,count=0;
+    // while(count < 500000)
+    // {
+    //     logger->fatal(__FILE__,__LINE__,"测试日志-%d",count++);
+    //     cursize +=30;
+    // }
 
 
     // popolog::LogMsg msg(popolog::LogLevel::value::INFO,53,"main.c","root","格式化功能测试"); 
