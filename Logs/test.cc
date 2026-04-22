@@ -9,17 +9,17 @@
 
 void test_log()
 {
-    
-    DEBUG("%s","popo的测试日志");
-    INFO("%s","popo的测试日志");
-    WARN("%s","popo的测试日志");
-    ERROR("%s","popo的测试日志");
-    FATAL("%s","popo的测试日志");
+    popolog::Logger::ptr logger = popolog::getLogger("async_logger");
+    logger->debug("%s","popo的测试日志");
+    logger->info("%s","popo的测试日志");
+    logger->warn("%s","popo的测试日志");
+    logger->error("%s","popo的测试日志");
+    logger->fatal("%s","popo的测试日志");
     
     int cursize = 0,count=0;
     while(count < 50000)
     {
-        FATAL("测试日志-%d",count++);
+        logger->fatal("测试日志-%d",count++);
         cursize +=30;
     }
 }
